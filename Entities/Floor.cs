@@ -15,11 +15,6 @@ namespace Entities
         public string Name { get; set; }
 
         /// <summary>
-        /// Keep track of the elevators at the current floor
-        /// </summary>
-        public List<Elevator> Elevators { get; set; } = new List<Elevator>();
-
-        /// <summary>
         /// Track the requests received
         /// </summary>
         public List<Request> Requests { get; set; } = new List<Request>();

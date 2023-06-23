@@ -10,5 +10,6 @@ namespace Entities
     {
         public bool IsUp { get; set; }
 
+        public int NumberWaiting { get; set; }
     }
 }

@@ -5,5 +5,13 @@
         public string ElevatorId { get; set; }
 
         public bool IsUp { get; set; }
+
+        public int CurrentFloor { get; set; }
+
+        public int People { get; set; }
+
+        public Elevator Elevator { get; set; }
+
+        public bool FinalDestination { get; set; }
     }
 }

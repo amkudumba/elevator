@@ -8,14 +8,13 @@ namespace Entities
 {
     public class Elevator
     {
-
         public event EventHandler<MovingEventArgs> RaiseIsMoving;
 
         public event EventHandler<MovingEventArgs> RaiseAtFloor;
 
         private const int WeightLimit = 15;
 
-        private const int Speed = 30;
+        private const int Speed = 2;
         /// <summary>
         /// use for UI displaying which elevator has passengers
         /// </summary>
@@ -24,7 +23,7 @@ namespace Entities
         /// <summary>
         /// When moving, this is empty.  Populate when you arrive at a floor
         /// </summary>
-        public int? CurrentFloor { get; set; }
+        public int CurrentFloor { get; set; }
 
         /// <summary>
         /// When stopped, this is empty.  Populate when moving
@@ -32,20 +31,27 @@ namespace Entities
         public int? NextFloor { get; set; }
 
 
+        public int Relative(int floor)
+        {
+            return (Math.Abs(CurrentFloor - floor));
+        }
+
         /// <summary>
         /// Ultimate destination floor of the elevator
         /// </summary>
-        public int Destination { get;set; }
+        public int Destination { get; set; }
 
         public bool DirectionIsUp { get; set; }
 
+        public ElevatorStatusEnum ElevatorStatus { get; set; }
+
         public List<Person> Passengers { get; set; } = new List<Person>();
 
-        public bool HasCapacity
+        public int AvailableCapacity
         {
             get
             {
-                return Passengers.Count < WeightLimit;
+                return WeightLimit - Passengers.Count;
             }
         }
 
@@ -54,26 +60,46 @@ namespace Entities
             Passengers.Add(person);
         }
 
-        public void MoveUp()
+        private async Task Move(bool isFinalDestination, bool isUp)
         {
-            //raise event moving up
-            DirectionIsUp = true;
-            OnMoving(new MovingEventArgs { ElevatorId = Id, IsUp = true });
+            do
+            {
+                OnMoving(new MovingEventArgs
+                {
+                    ElevatorId = Id,
+                    IsUp = true,
+                    CurrentFloor = CurrentFloor,
+                    People = Passengers.Count,
+                    Elevator = this
+                });
+                await Task.Delay((Speed) * 1000);
+                CurrentFloor = CurrentFloor + (isUp ? 1 : -1);
+            } while (CurrentFloor != Destination);
 
-            //delay to mimic movement ?? need to make this async to free up UI
-            Thread.Sleep(Speed*1000);
+            OnArrived(new MovingEventArgs
+            {
+                ElevatorId = Id,
+                IsUp = true,
+                CurrentFloor = CurrentFloor,
+                Elevator = this,
+                People = Passengers.Count,
+                FinalDestination = isFinalDestination
+            });
 
-            throw new NotImplementedException();
         }
 
-        public void MoveDown()
+        public async Task MoveUp(bool isFinalDestination)
         {
-            //raise event moving down
+            DirectionIsUp = true;
+            ElevatorStatus = ElevatorStatusEnum.Moving;
+            await Move(isFinalDestination, true);
+        }
+
+        public async Task MoveDown(bool isFinalDestination)
+        {
             DirectionIsUp = false;
-            OnMoving(new MovingEventArgs { ElevatorId = Id, IsUp = false});
-            //delay to mimic movement ?? need to make this async to free up UI
-            Thread.Sleep(Speed*1000);
-            throw new NotImplementedException();
+            ElevatorStatus = ElevatorStatusEnum.Moving;
+            await Move(isFinalDestination, false);
         }
 
         protected void OnMoving(MovingEventArgs e)

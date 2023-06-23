@@ -8,6 +8,6 @@ namespace Entities
 {
     public class Person
     {
-        public string Destination { get; set; }
+        public int Destination { get; set; }
     }
 }
