@@ -11,6 +11,8 @@ namespace Domain
 
         public event EventHandler<MovingEventArgs> RaiseAtFloor;
 
+        public event EventHandler<LoadingEventArgs> RaiseRemaining;
+
         protected void OnMoving(MovingEventArgs e)
         {
             RaiseIsMoving?.Invoke(this, e);
@@ -21,13 +23,18 @@ namespace Domain
             RaiseAtFloor?.Invoke(this, e);
         }
 
+        protected void OnRemaining(LoadingEventArgs e)
+        {
+            RaiseRemaining?.Invoke(this, e);
+        }
+
         public List<Elevator> Elevators { get; set; } = new List<Elevator>();
 
         public List<Floor> Floors { get; set; } = new List<Floor>();
 
         public Shaft()
         {
-            Initialize(2, -3, 5);
+            Initialize(4, -3, 8);
         }
 
         public Shaft(int elevatorCount, int bottomFloor, int topFloor)
@@ -41,19 +48,11 @@ namespace Domain
 
             if (toSet != null)
             {
-                var request = toSet.Requests.Where(p => p.IsUp == isUp).FirstOrDefault();
-                if (request != null)
-                {
-                    request.NumberWaiting += people;    //there is already a request, so more people have arrived
-                }
-                else
-                {
-                    request = new Request { NumberWaiting = people, IsUp = isUp };
-                    toSet.Requests.Add(request);
-                }
+                var request = new Request { NumberWaiting = people, IsUp = isUp };
 
                 //find the elevator that is closest
-                var closest = FindClosest(floor, request);
+                var closest = FindClosest(floor);
+                closest.Request = request;
 
                 if (closest.Destination != floor)
                 {
@@ -85,10 +84,24 @@ namespace Domain
             return false;
         }
 
-        private Elevator FindClosest(int floor, Request request)
+        public bool ExecuteRequest(Elevator elevator, int destination)
+        {
+            elevator.Destination = destination;
+            if (destination > elevator.CurrentFloor)
+            {
+                _ = elevator.MoveUp(true);
+            }
+            else
+            {
+                _ = elevator.MoveDown(true);
+            }
+            return true;
+        }
+
+        private Elevator FindClosest(int floor)
         {
             //check for elevators with capacity
-            var withCapacity = Elevators.Where(p => p.AvailableCapacity >= request.NumberWaiting);
+            var withCapacity = Elevators.Where(p => p.AvailableCapacity >= 0);
 
             //stationary lifts can be used
             var stationary = withCapacity.Where(p => p.ElevatorStatus == ElevatorStatusEnum.Stopped).ToList();
@@ -131,8 +144,14 @@ namespace Domain
                 Elevator add = new Elevator { Id = $"Lift #: {Elevators.Count + 1}", CurrentFloor = 0 };
                 add.RaiseIsMoving += ElevatorIsMoving;
                 add.RaiseAtFloor += ElevatorIsAtFloor;
+                add.RaiseRemaining += PassengersLeftBehind;
                 Elevators.Add(add);
             }
+        }
+
+        private void PassengersLeftBehind(object sender, LoadingEventArgs e)
+        {
+            OnRemaining(e);
         }
 
         private void ElevatorIsAtFloor(object sender, MovingEventArgs e)
@@ -142,6 +161,7 @@ namespace Domain
                 elevator.CurrentFloor = elevator.NextFloor.GetValueOrDefault();
                 elevator.NextFloor = null;
                 elevator.ElevatorStatus = ElevatorStatusEnum.Stopped;
+                
                 if (elevator.CurrentFloor == highestFloor)
                 {
                     elevator.DirectionIsUp = false;

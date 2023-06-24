@@ -8,6 +8,7 @@ int floor;
 int people;
 int destination = 0;
 bool isUp = true;
+bool carryOn = true;
 
 Shaft shaft = new Shaft();
 
@@ -17,9 +18,14 @@ int bottomFloor = shaft.Floors.First().Number;
 bool validPeople = false;
 bool validDirection = false;
 bool validDestination = false;
+bool validCarryOn = false;
+
+bool tripComplete = false;
 
 shaft.RaiseIsMoving += Shaft_RaiseIsMoving;
 shaft.RaiseAtFloor += Shaft_RaiseAtFloor;
+shaft.RaiseRemaining += Shaft_RaiseRemaining;
+
 Elevator elevator = new Elevator();     //avoid getting null here.  Review
 
 void Shaft_RaiseAtFloor(object? sender, MovingEventArgs e)
@@ -28,18 +34,26 @@ void Shaft_RaiseAtFloor(object? sender, MovingEventArgs e)
     WriteMessage($"{e.ElevatorId}, arrived at {e.CurrentFloor}", (e.FinalDestination ? ConsoleColor.Green : ConsoleColor.Yellow));
     if (e.FinalDestination == false)
     {
-        for (int i = 0; i < e.People; i++)
-        {
-            elevator.Board(new Person { Destination = destination });
-        }
+        elevator.Board();
+
         destination = GetFloor("Enter floor where lift is going:");
         validDestination = true;
+    }
+    else
+    {
+        tripComplete=true;
     }
 }
 
 void Shaft_RaiseIsMoving(object? sender, MovingEventArgs e)
 {
     WriteMessage($"{e.ElevatorId}, is at Floor # {e.CurrentFloor}, going {(e.IsUp ? "Up" : "Down")}, with {e.People}");
+}
+
+
+void Shaft_RaiseRemaining(object? sender, LoadingEventArgs e)
+{
+    WriteMessage($"{e.ElevatorId} left behind {e.Remaining} people at floor {e.Floor}", ConsoleColor.Yellow);
 }
 
 void WriteMessage(string message, ConsoleColor? color = null)
@@ -80,65 +94,119 @@ int GetFloor(string prompt)
     return floorValue;
 }
 
+void GetNumberOfPeople()
+{
+    do
+    {
+        WriteMessage($"Number of people waiting:");
+        validPeople = int.TryParse(Console.ReadLine(), out people);
+        if (validPeople == false || people <= 0)
+        {
+            WriteMessage("Invalid number of people", ConsoleColor.Red);
+            validPeople = false;
+        }
+    } while (validPeople == false);
+}
+
+void GetDirection()
+{
+    do
+    {
+        validDirection = false;
+        WriteMessage($"Desired direction: Up/Down");
+        string direction = Console.ReadLine();
+        if (!string.IsNullOrWhiteSpace(direction))
+        {
+            if (direction.Trim().ToLower() == "up")
+            {
+                isUp = true;
+                validDirection = true;
+            }
+            if (direction.Trim().ToLower() == "down")
+            {
+                isUp = false;
+                validDirection = true;
+            }
+        }
+
+        if (validDirection == false)
+        {
+            WriteMessage("Invalid direction", ConsoleColor.Red);
+        }
+    } while (validDirection == false);
+}
+
+void PromptForNewTrip()
+{
+    do
+    {
+        validCarryOn = false;
+        WriteMessage($"Do you want to enter another trip? (Yes|Y / No|N)", ConsoleColor.Red);
+        string carryOnAnswer = Console.ReadLine();
+        if (!string.IsNullOrWhiteSpace(carryOnAnswer))
+        {
+            if (carryOnAnswer.Trim().ToLower() == "yes" || carryOnAnswer.Trim().ToLower() == "y")
+            {
+                carryOn = true;
+                validCarryOn = true;
+            }
+            if (carryOnAnswer.Trim().ToLower() == "no" || carryOnAnswer.Trim().ToLower() == "n")
+            {
+                carryOn = false;
+                validCarryOn = true;
+            }
+        }
+
+        if (validCarryOn == false)
+        {
+            WriteMessage("Invalid answer", ConsoleColor.Red);
+        }
+    } while (validCarryOn == false);
+    tripComplete = false;
+    validDestination = false;
+}
+
 WriteMessage("Elevator summary!", ConsoleColor.Green);
 WriteMessage($"{shaft.Floors.Count} floors, {shaft.Elevators.Count} elevators", ConsoleColor.Green);
 WriteMessage($"Bottom floor: {bottomFloor}", ConsoleColor.Green);
 WriteMessage($"Top floor: {topFloor}", ConsoleColor.Green);
 
-floor = GetFloor("Enter floor where lift is required:");
+ShowSummary();
 
 do
 {
-    WriteMessage($"Number of people waiting:");
-    validPeople = int.TryParse(Console.ReadLine(), out people);
-    if (validPeople == false || people <= 0)
+
+    floor = GetFloor("Enter floor where lift is required:");
+
+    GetNumberOfPeople();
+
+    GetDirection();
+
+    shaft.AddRequest(floor, people, isUp);
+
+    do
     {
-        WriteMessage("Invalid number of people", ConsoleColor.Red);
-        validPeople = false;
-    }
-} while (validPeople == false);
+        Thread.Sleep(1000);
+    } while (validDestination == false);
 
-do
-{
-    validDirection = false;
-    WriteMessage($"Desired direction: Up/Down");
-    string direction = Console.ReadLine();
-    if (!string.IsNullOrWhiteSpace(direction))
+    shaft.ExecuteRequest(elevator, destination);
+
+    do
     {
-        if (direction.Trim().ToLower() == "up")
-        {
-            isUp = true;
-            validDirection = true;
-        }
-        if (direction.Trim().ToLower() == "down")
-        {
-            isUp = false;
-            validDirection = true;
-        }
-    }
+        Thread.Sleep(1000);
+    } while (tripComplete == false);
 
-    if (validDirection == false)
+    ShowSummary();
+
+    PromptForNewTrip();
+} while (carryOn);
+
+void ShowSummary()
+{
+    WriteMessage($"Current Status".PadLeft(30, '-').PadRight(46, '-'), ConsoleColor.Cyan);
+    foreach (var item in shaft.Elevators)
     {
-        WriteMessage("Invalid directionr", ConsoleColor.Red);
+        WriteMessage($":: {item.Id.PadRight(10)}, at floor {item.CurrentFloor.ToString().PadRight(10)}{item.ElevatorStatus.ToString()}".PadRight(46), ConsoleColor.Cyan);
     }
-} while (validDirection == false);
-
-shaft.AddRequest(floor, people, isUp);
-
-do
-{
-    Thread.Sleep(1000);
-} while (validDestination == false);
-
-elevator.Destination = destination;
-if (destination > elevator.CurrentFloor)
-{
-    _ = elevator.MoveUp(true);
+    WriteMessage(new string('-', 46), ConsoleColor.Cyan);
 }
-else
-{
-    _ = elevator.MoveDown(true);
-}
-Console.ReadLine();
-
-Console.ReadLine();
