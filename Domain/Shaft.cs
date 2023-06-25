@@ -13,6 +13,15 @@ namespace Domain
 
         public event EventHandler<LoadingEventArgs> RaiseRemaining;
 
+        public int LowestFloor { get { return lowestFloor; } }
+
+        public int HighestFloor { get { return highestFloor; } }
+
+        public bool FloorInRange(int floor)
+        {
+            return floor >= lowestFloor && floor <= highestFloor;
+        }
+
         protected void OnMoving(MovingEventArgs e)
         {
             RaiseIsMoving?.Invoke(this, e);
@@ -161,7 +170,7 @@ namespace Domain
                 elevator.CurrentFloor = elevator.NextFloor.GetValueOrDefault();
                 elevator.NextFloor = null;
                 elevator.ElevatorStatus = ElevatorStatusEnum.Stopped;
-                
+
                 if (elevator.CurrentFloor == highestFloor)
                 {
                     elevator.DirectionIsUp = false;

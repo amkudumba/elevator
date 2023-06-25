@@ -11,6 +11,7 @@
         private const int WeightLimit = 15;
 
         private const int Speed = 1;
+
         /// <summary>
         /// use for UI displaying which elevator has passengers
         /// </summary>

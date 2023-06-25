@@ -12,9 +12,6 @@ bool carryOn = true;
 
 Shaft shaft = new Shaft();
 
-int topFloor = shaft.Floors.Last().Number;
-int bottomFloor = shaft.Floors.First().Number;
-
 bool validPeople = false;
 bool validDirection = false;
 bool validDestination = false;
@@ -84,9 +81,9 @@ int GetFloor(string prompt)
         }
         else
         {
-            if (floorValue < bottomFloor || floorValue > topFloor)
+            if (!shaft.FloorInRange(floorValue))
             {
-                WriteMessage($"Floor input is outside range {bottomFloor} to {topFloor}", ConsoleColor.Red);
+                WriteMessage($"Floor input is outside range {shaft.LowestFloor} to {shaft.HighestFloor}", ConsoleColor.Red);
                 validFloor = false;
             }
         }
@@ -168,8 +165,8 @@ void PromptForNewTrip()
 
 WriteMessage("Elevator summary!", ConsoleColor.Green);
 WriteMessage($"{shaft.Floors.Count} floors, {shaft.Elevators.Count} elevators", ConsoleColor.Green);
-WriteMessage($"Bottom floor: {bottomFloor}", ConsoleColor.Green);
-WriteMessage($"Top floor: {topFloor}", ConsoleColor.Green);
+WriteMessage($"Bottom floor: {shaft.LowestFloor}", ConsoleColor.Green);
+WriteMessage($"Top floor: {shaft.HighestFloor}", ConsoleColor.Green);
 
 ShowSummary();
 
