@@ -10,7 +10,7 @@
 
         public int People { get; set; }
 
-        public Elevator Elevator { get; set; }
+        public IElevator Elevator { get; set; }
 
         public bool FinalDestination { get; set; }
     }

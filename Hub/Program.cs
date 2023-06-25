@@ -23,7 +23,7 @@ shaft.RaiseIsMoving += Shaft_RaiseIsMoving;
 shaft.RaiseAtFloor += Shaft_RaiseAtFloor;
 shaft.RaiseRemaining += Shaft_RaiseRemaining;
 
-Elevator elevator = new Elevator();     //avoid getting null here.  Review
+IElevator elevator = new FastElevator();     //avoid getting null here.  Review
 
 void Shaft_RaiseAtFloor(object? sender, MovingEventArgs e)
 {
@@ -38,13 +38,21 @@ void Shaft_RaiseAtFloor(object? sender, MovingEventArgs e)
     }
     else
     {
-        tripComplete=true;
+        tripComplete = true;
     }
 }
 
 void Shaft_RaiseIsMoving(object? sender, MovingEventArgs e)
 {
-    WriteMessage($"{e.ElevatorId}, is at Floor # {e.CurrentFloor}, going {(e.IsUp ? "Up" : "Down")}, with {e.People}");
+    var elevator = e.Elevator;
+
+    string elevatorType = "Slow Elevator";
+    if (elevator is FastElevator)
+    {
+        elevatorType = "Express Elevator";
+    }
+    
+    WriteMessage($"{elevatorType} {e.ElevatorId}, is at Floor # {e.CurrentFloor}, going {(e.IsUp ? "Up" : "Down")}, with {e.People}, to floor {e.Elevator.NextFloor}");
 }
 
 
@@ -66,6 +74,7 @@ void WriteMessage(string message, ConsoleColor? color = null)
     }
 }
 
+//input a floor.  Validate if valid
 int GetFloor(string prompt)
 {
     int floorValue;
@@ -91,6 +100,7 @@ int GetFloor(string prompt)
     return floorValue;
 }
 
+//input number of people.  Validate if valid
 void GetNumberOfPeople()
 {
     do
@@ -105,6 +115,7 @@ void GetNumberOfPeople()
     } while (validPeople == false);
 }
 
+//input direction and validate
 void GetDirection()
 {
     do
@@ -133,6 +144,7 @@ void GetDirection()
     } while (validDirection == false);
 }
 
+//allow user to add new request
 void PromptForNewTrip()
 {
     do
@@ -163,6 +175,18 @@ void PromptForNewTrip()
     validDestination = false;
 }
 
+//display summary
+
+void ShowSummary()
+{
+    WriteMessage($"Current Status".PadLeft(30, '-').PadRight(46, '-'), ConsoleColor.Cyan);
+    foreach (var item in shaft.Elevators)
+    {
+        WriteMessage($":: {item.Id.PadRight(10)}, at floor {item.CurrentFloor.ToString().PadRight(10)}{item.ElevatorStatus.ToString()}".PadRight(46), ConsoleColor.Cyan);
+    }
+    WriteMessage(new string('-', 46), ConsoleColor.Cyan);
+}
+
 WriteMessage("Elevator summary!", ConsoleColor.Green);
 WriteMessage($"{shaft.Floors.Count} floors, {shaft.Elevators.Count} elevators", ConsoleColor.Green);
 WriteMessage($"Bottom floor: {shaft.LowestFloor}", ConsoleColor.Green);
@@ -170,6 +194,7 @@ WriteMessage($"Top floor: {shaft.HighestFloor}", ConsoleColor.Green);
 
 ShowSummary();
 
+//loop until user has no more requests
 do
 {
 
@@ -198,12 +223,3 @@ do
     PromptForNewTrip();
 } while (carryOn);
 
-void ShowSummary()
-{
-    WriteMessage($"Current Status".PadLeft(30, '-').PadRight(46, '-'), ConsoleColor.Cyan);
-    foreach (var item in shaft.Elevators)
-    {
-        WriteMessage($":: {item.Id.PadRight(10)}, at floor {item.CurrentFloor.ToString().PadRight(10)}{item.ElevatorStatus.ToString()}".PadRight(46), ConsoleColor.Cyan);
-    }
-    WriteMessage(new string('-', 46), ConsoleColor.Cyan);
-}

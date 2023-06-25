@@ -8,6 +8,9 @@ namespace Entities
 {
     public class Person
     {
+        /// <summary>
+        /// individual's drop off floor.  For future use
+        /// </summary>
         public int Destination { get; set; }
     }
 }

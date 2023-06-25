@@ -13,7 +13,7 @@ namespace Challenge.Tests
         [Fact]
         public void Initialized_Elevator_No_Passengers()
         {
-            Elevator elevator = new Elevator();
+            var elevator = new FastElevator();
             Assert.True(!elevator.Passengers.Any());
         }
 

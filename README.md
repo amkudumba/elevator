@@ -15,3 +15,10 @@ Given a pool of elevators, the program should send the nearest available elevato
 
 **Extra Credit**
 For extra credit, allow a weight limit, expressed as a number of people, to be imposed on the elevators.  You can assume every elevator in the simulation has the same weight limit
+
+**********************************************************************************************************
+# Implementation Notes
+* Language : C#
+* Framework : .Net 6.0
+* Structure : Hub -> Domain -> Entities
+* Unit tests : used to test validations, moving elevators, initialization, and elevator rules

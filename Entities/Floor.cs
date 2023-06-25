@@ -8,6 +8,9 @@ namespace Entities
 {
     public class Floor
     {
+        /// <summary>
+        /// the absolute floor number e.g. -1, 0, 1, 2
+        /// </summary>
         public int Number { get; set; }
         /// <summary>
         /// The floor name (1st, B1, B2, etc)

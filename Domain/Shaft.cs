@@ -17,6 +17,11 @@ namespace Domain
 
         public int HighestFloor { get { return highestFloor; } }
 
+        /// <summary>
+        /// validate the requested floor is in valid range
+        /// </summary>
+        /// <param name="floor"></param>
+        /// <returns></returns>
         public bool FloorInRange(int floor)
         {
             return floor >= lowestFloor && floor <= highestFloor;
@@ -37,20 +42,27 @@ namespace Domain
             RaiseRemaining?.Invoke(this, e);
         }
 
-        public List<Elevator> Elevators { get; set; } = new List<Elevator>();
+        public List<IElevator> Elevators { get; set; } = new List<IElevator>();
 
         public List<Floor> Floors { get; set; } = new List<Floor>();
 
         public Shaft()
         {
-            Initialize(4, -3, 8);
+            Initialize(3, 1, -3, 8);
         }
 
         public Shaft(int elevatorCount, int bottomFloor, int topFloor)
         {
-            Initialize(elevatorCount, bottomFloor, topFloor);
+            Initialize(elevatorCount, 0, bottomFloor, topFloor);
         }
 
+        /// <summary>
+        /// add a new request for an elevator
+        /// </summary>
+        /// <param name="floor"></param>
+        /// <param name="people"></param>
+        /// <param name="isUp"></param>
+        /// <returns></returns>
         public bool AddRequest(int floor, int people, bool isUp)
         {
             var toSet = Floors.Where(p => p.Number == floor).FirstOrDefault();
@@ -93,7 +105,13 @@ namespace Domain
             return false;
         }
 
-        public bool ExecuteRequest(Elevator elevator, int destination)
+        /// <summary>
+        /// execute the request at floor, i.e. go to destination
+        /// </summary>
+        /// <param name="elevator"></param>
+        /// <param name="destination"></param>
+        /// <returns></returns>
+        public bool ExecuteRequest(IElevator elevator, int destination)
         {
             elevator.Destination = destination;
             if (destination > elevator.CurrentFloor)
@@ -107,7 +125,12 @@ namespace Domain
             return true;
         }
 
-        private Elevator FindClosest(int floor)
+        /// <summary>
+        /// find the losest elevator
+        /// </summary>
+        /// <param name="floor"></param>
+        /// <returns></returns>
+        private IElevator FindClosest(int floor)
         {
             //check for elevators with capacity
             var withCapacity = Elevators.Where(p => p.AvailableCapacity >= 0);
@@ -128,11 +151,11 @@ namespace Domain
             return combined.OrderBy(p => p.Relative(floor)).FirstOrDefault();
         }
 
-        private void Initialize(int elevatorCount, int bottomFloor, int topFloor)
+        private void Initialize(int fastElevators, int slowElevators, int bottomFloor, int topFloor)
         {
             InitializeFloors(bottomFloor, topFloor);
 
-            InitializeElevators(elevatorCount);
+            InitializeElevators(fastElevators, slowElevators);
         }
 
         private void InitializeFloors(int bottomFloor, int topFloor)
@@ -146,11 +169,20 @@ namespace Domain
             }
         }
 
-        private void InitializeElevators(int elevatorCount)
+        private void InitializeElevators(int fastElevators, int slowElevators)
         {
-            for (int i = 0; i < elevatorCount; i++)
+            for (int i = 0; i < fastElevators; i++)
             {
-                Elevator add = new Elevator { Id = $"Lift #: {Elevators.Count + 1}", CurrentFloor = 0 };
+                IElevator add = new FastElevator { Id = $"Lift #: {Elevators.Count + 1}", CurrentFloor = 0 };
+                add.RaiseIsMoving += ElevatorIsMoving;
+                add.RaiseAtFloor += ElevatorIsAtFloor;
+                add.RaiseRemaining += PassengersLeftBehind;
+                Elevators.Add(add);
+            }
+
+            for (int i = 0; i < slowElevators; i++)
+            {
+                IElevator add = new SlowElevator { Id = $"Lift #: {Elevators.Count + 1}", CurrentFloor = 0 };
                 add.RaiseIsMoving += ElevatorIsMoving;
                 add.RaiseAtFloor += ElevatorIsAtFloor;
                 add.RaiseRemaining += PassengersLeftBehind;
@@ -165,7 +197,7 @@ namespace Domain
 
         private void ElevatorIsAtFloor(object sender, MovingEventArgs e)
         {
-            if (sender != null && sender is Elevator elevator)
+            if (sender != null && sender is IElevator elevator)
             {
                 elevator.CurrentFloor = elevator.NextFloor.GetValueOrDefault();
                 elevator.NextFloor = null;
@@ -186,7 +218,7 @@ namespace Domain
 
         private void ElevatorIsMoving(object sender, MovingEventArgs e)
         {
-            if (sender != null && sender is Elevator elevator)
+            if (sender != null && sender is IElevator elevator)
             {
                 if (e.IsUp)
                 {
